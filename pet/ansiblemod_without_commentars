@@ -1,0 +1,306 @@
+Структура проекта Ansible:
+inventory — файл инвентаризации, который содержит список хостов.
+playbook.yml — основной playbook, который будет запускать нужные роли.
+roles/nginx/tasks/main.yml — роль для установки и настройки Nginx.
+roles/php_fpm/tasks/main.yml — роль для установки и настройки PHP-FPM.
+roles/mysql/tasks/main.yml — роль для установки и настройки MySQL.
+roles/ssh/tasks/main.yml — роль для настройки SSH.
+roles/csf/tasks/main.yml — роль для настройки CSF.
+roles/wordpress/tasks/main.yml — роль для установки WordPress.
+roles/backup/tasks/main.yml — роль для настройки бекапов.
+roles/monitoring/tasks/main.yml — роль для настройки мониторинга (например, с помощью Prometheus или Zabbix).
+
+.
+├── inventory
+├── playbook.yml
+└── roles
+    ├── nginx
+    │   └── tasks
+    │       └── main.yml
+    ├── php_fpm
+    │   └── tasks
+    │       └── main.yml
+    ├── mysql
+    │   └── tasks
+    │       └── main.yml
+    ├── ssh
+    │   └── tasks
+    │       └── main.yml
+    ├── csf
+    │   └── tasks
+    │       └── main.yml
+    ├── wordpress
+    │   └── tasks
+    │       └── main.yml
+    ├── backup
+    │   └── tasks
+    │       └── main.yml
+    └── monitoring
+        └── tasks
+            └── main.yml
+
+1. inventory — файл инвентаризацииinventory_file
+
+
+[servers]
+your_server_ip
+
+[servers:vars]
+ansible_user=your_user
+ansible_ssh_private_key_file=/path/to/your/private/key
+
+
+2. playbook.yml — основной playbookplaybook.yml   
+
+
+---
+- name: Настройка сервера Ubuntu 20.04
+  hosts: servers
+  become: true
+  tasks:
+    - name: Подготовка сервера
+      include_tasks: roles/nginx/tasks/main.yml
+
+    - name: Установка PHP-FPM
+      include_tasks: roles/php_fpm/tasks/main.yml
+
+    - name: Установка и настройка MySQL
+      include_tasks: roles/mysql/tasks/main.yml
+
+    - name: Настройка SSH
+      include_tasks: roles/ssh/tasks/main.yml
+
+    - name: Настройка CSF
+      include_tasks: roles/csf/tasks/main.yml
+
+    - name: Установка и настройка WordPress
+      include_tasks: roles/wordpress/tasks/main.yml
+
+    - name: Настройка бекапов
+      include_tasks: roles/backup/tasks/main.yml
+
+    - name: Настройка мониторинга
+      include_tasks: roles/monitoring/tasks/main.yml
+
+
+
+3. roles/nginx/tasks/main.yml — роль для Nginxroles/nginx/tasks/main.yml — роль для Nginx
+
+
+---
+- name: Установка Nginx
+  apt:
+    name: nginx
+    state: latest
+    update_cache: yes
+
+- name: Настройка виртуального хоста
+  template:
+    src: nginx_site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_site_name }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Активировать виртуальный хост
+  command: nginx -t && ln -s /etc/nginx/sites-available/{{ nginx_site_name }} /etc/nginx/sites-enabled/
+
+- name: Перезапуск Nginx
+  service:
+    name: nginx
+    state: restarted
+
+Шаблон для конфигурации сайта nginx_site.conf.j2:
+
+
+server {
+    listen 80;
+    server_name {{ domain_name }};
+    root /var/www/{{ domain_name }};
+    index index.php index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME /var/www/{{ domain_name }}/$document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+
+
+4. roles/php_fpm/tasks/main.yml — роль для PHP-FPM
+
+
+---
+- name: Установка PHP 8.1 и необходимых пакетов
+  apt:
+    name:
+      - php8.1-fpm
+      - php8.1-mysql
+      - php8.1-cli
+      - php8.1-xml
+      - php8.1-mbstring
+      - php8.1-curl
+      - php8.1-zip
+    state: latest
+    update_cache: yes
+
+- name: Перезапуск PHP-FPM
+  service:
+    name: php8.1-fpm
+    state: restarted
+
+
+5. roles/mysql/tasks/main.yml — роль для MySQL
+
+
+---
+- name: Установка MySQL
+  apt:
+    name: mysql-server
+    state: latest
+    update_cache: yes
+
+- name: Создание базы данных для WordPress
+  mysql_db:
+    name: "{{ mysql_db_name }}"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Создание пользователя MySQL
+  mysql_user:
+    name: "{{ mysql_user_name }}"
+    password: "{{ mysql_user_password }}"
+    priv: "{{ mysql_db_name }}.*:ALL"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+
+6. roles/ssh/tasks/main.yml — роль для SSH
+
+
+
+---
+- name: Настройка SSH
+  block:
+    - name: Запретить авторизацию по паролю
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+
+    - name: Разрешить авторизацию по ключам
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PubkeyAuthentication'
+        line: 'PubkeyAuthentication yes'
+
+    - name: Настроить список разрешённых IP
+      lineinfile:
+        path: /etc/hosts.allow
+        line: "sshd: {{ item }}"
+      with_items: "{{ allowed_ips }}"
+
+    - name: Изменить SSH порт на 1234
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#Port 22'
+        line: 'Port 1234'
+
+    - name: Перезапустить SSH
+      service:
+        name: ssh
+        state: restarted
+
+
+7. roles/csf/tasks/main.yml — роль для CSF
+
+
+---
+- name: Установка CSF
+  apt:
+    name: csf
+    state: present
+    update_cache: yes
+
+- name: Перезапуск CSF
+  service:
+    name: csf
+    state: restarted
+
+
+8. roles/wordpress/tasks/main.yml — роль для WordPress
+
+
+---
+- name: Установка WordPress
+  get_url:
+    url: https://wordpress.org/latest.tar.gz
+    dest: /tmp/wordpress.tar.gz
+
+- name: Распаковка WordPress
+  unarchive:
+    src: /tmp/wordpress.tar.gz
+    dest: /var/www/{{ domain_name }}
+    copy: no
+
+- name: Настройка прав на файлы WordPress
+  file:
+    path: /var/www/{{ domain_name }}
+    owner: www-data
+    group: www-data
+    recurse: yes
+
+
+9. roles/backup/tasks/main.yml — роль для бекапов
+
+
+---
+- name: Настройка бекапов
+  cron:
+    name: "Backup every day at 2AM"
+    minute: "0"
+    hour: "2"
+    job: "/usr/bin/tar -czf /var/backups/wordpress_$(date +\%F).tar.gz /var/www/{{ domain_name }}"
+
+
+10. roles/monitoring/tasks/main.yml — роль для мониторинга
+
+
+---
+- name: Установка мониторинга (например, Prometheus)
+  apt:
+    name: prometheus
+    state: latest
+    update_cache: yes
+
+- name: Настройка мониторинга
+  service:
+    name: prometheus
+    state: started
+    enabled: true
+
+
+Переменные в файле group_vars:
+
+
+nginx_site_name: your_site
+domain_name: example.com
+mysql_db_name: wordpress
+mysql_user_name: wp_user
+mysql_user_password: wp_password
+mysql_root_password: root_password
+allowed_ips:
+  - "192.168.1.100"
+  - "203.0.113.1"
+
