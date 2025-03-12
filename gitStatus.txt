@@ -2,14 +2,12 @@
 On branch main
 Your branch is up to date with 'origin/main'.
 
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   pet/ansiblemode_with_comments
+
 Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
 	modified:   gitStatus.txt
 
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	pet/ansiblemod_without_commentars
-	pet/ansiblemode_with_comments
-
-no changes added to commit (use "git add" and/or "git commit -a")

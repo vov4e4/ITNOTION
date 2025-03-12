@@ -10,6 +10,12 @@ roles/wordpress/tasks/main.yml — роль для установки WordPress.
 roles/backup/tasks/main.yml — роль для настройки бекапов.
 roles/monitoring/tasks/main.yml — роль для настройки мониторинга (например, с помощью Prometheus или Zabbix).
 
+nginx -v
+php --version
+php-cgi --version
+mysql -V
+
+
 
 Пример структуры файлов:
 .
