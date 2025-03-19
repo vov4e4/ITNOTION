@@ -14,12 +14,17 @@ nginx -v
 php --version
 php-cgi --version
 mysql -V
+sshd -v
+
 
 master 192.168.0.203
 clients 192.163.0.49
 192.163.0.69
 192.163.0.135
 192.163.0.139
+
+
+192.163.0.49 ssh key
 
 Пример структуры файлов:
 .
@@ -329,8 +334,77 @@ allowed_ips:
 
 
 
+########STRUCTYRE#############
 
+ansible_project/
+│── inventory/             # Файли інвентаря (список хостів)
+│   ├── hosts             # Основний інвентарний файл
+│   ├── production        # Інший інвентар (опціонально)
+│── group_vars/           # Змінні для груп хостів
+│   ├── webservers.yml
+│   ├── dbservers.yml
+│── host_vars/            # Змінні для окремих хостів
+│   ├── server1.yml
+│   ├── server2.yml
+│── roles/                # Ролі (структуровані плейбуки)
+│   ├── webserver/
+│   │   ├── tasks/
+│   │   │   ├── main.yml
+│   │   ├── handlers/
+│   │   │   ├── main.yml
+│   │   ├── templates/
+│   │   ├── files/
+│   │   ├── vars/
+│   │   │   ├── main.yml
+│   │   ├── defaults/
+│   │   ├── meta/
+│── playbooks/            # Основні плейбуки
+│   ├── site.yml
+│   ├── webservers.yml
+│── ansible.cfg           # Конфігураційний файл Ansible
+│── requirements.yml      # Залежності (для Galaxy)
 
+#####GENERAL COMMAND#########
+
+# Перевірка доступності хостів (ping)
+ansible all -m ping -i inventory/hosts
+
+# Виконання команди на групі хостів
+ansible webservers -m command -a "uptime" -i inventory/hosts
+
+# Запуск плейбуку
+ansible-playbook playbooks/site.yml -i inventory/hosts
+
+# Виконання ад-хок команди (наприклад, встановлення пакета)
+ansible webservers -m apt -a "name=nginx state=present" -b
+
+# Перегляд змінних хоста
+ansible all -m debug -a "var=hostvars[inventory_hostname]"
+
+# Оновлення ролей з Ansible Galaxy
+ansible-galaxy install -r requirements.yml
+
+####inventory file###
+[webservers]
+web1.example.com
+web2.example.com
+
+[dbservers]
+db1.example.com ansible_host=192.168.1.10 ansible_user=root
+
+###yaml###
+
+all:
+  children:
+    webservers:
+      hosts:
+        web1.example.com:
+        web2.example.com:
+    dbservers:
+      hosts:
+        db1.example.com:
+          ansible_host: 192.168.1.10
+          ansible_user: root
 
 
 
