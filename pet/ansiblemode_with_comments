@@ -10,11 +10,16 @@ roles/wordpress/tasks/main.yml — роль для установки WordPress.
 roles/backup/tasks/main.yml — роль для настройки бекапов.
 roles/monitoring/tasks/main.yml — роль для настройки мониторинга (например, с помощью Prometheus или Zabbix).
 
+
+ansible --version
 nginx -v
 php --version
 php-cgi --version
 mysql -V
 sshd -v
+python3 --version
+update-alternatives --install /usr/bin/python /usr/bin/python3 2    #actuel version python3.    Prioritet2
+
 
 
 master 192.168.0.203
